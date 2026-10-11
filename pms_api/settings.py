@@ -133,6 +133,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",         
     "https://project-management-system-pms-xi.vercel.app",
+    "https://pms-f-mu.vercel.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -160,6 +161,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5174",         
     "https://pms-backend-fawn-pi.vercel.app",
     "https://project-management-system-pms-xi.vercel.app",
+    "https://pms-f-mu.vercel.app",
+    "https://pms-b.vercel.app",
 ]
 
 # Tell Django to trust Vercel's X-Forwarded-Proto header
