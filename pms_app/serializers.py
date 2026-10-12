@@ -18,7 +18,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["u_name", "email", "password", "role"]
 
     def create(self, validated_data):
-        # New users start INACTIVE until they click the verification link.
         user = User.objects.create_user(**validated_data)
         user.is_active   = False
         user.is_verified = False
@@ -74,12 +73,11 @@ class LoginSerializer(serializers.Serializer):
             "name":        user.u_name,
             "role":        user.role,
             "is_verified": user.is_verified,
-            "created_at":  user.created_at,   # ← ADDED — used by notification cutoff
+            "created_at":  user.created_at,
         }
 
 
 class VerifyEmailSerializer(serializers.Serializer):
-    """POST /api/auth/verify-email — body: { uid, token }"""
     uid   = serializers.CharField()
     token = serializers.CharField()
 
@@ -118,7 +116,6 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 
 class ResendVerificationSerializer(serializers.Serializer):
-    """POST /api/auth/resend-verification — body: { email }"""
     email = serializers.EmailField()
 
     def validate_email(self, value):
@@ -128,13 +125,8 @@ class ResendVerificationSerializer(serializers.Serializer):
         self.context["user"] = user
         return value.lower()
 
-class RequestPasswordChangeSerializer(serializers.Serializer):
-    """
-    POST /api/auth/request-password-change — body: { current, new }
 
-    We *validate* here but do NOT persist. The actual password change
-    happens only when the user clicks the emailed confirmation link.
-    """
+class RequestPasswordChangeSerializer(serializers.Serializer):
     current = serializers.CharField(write_only=True)
     new     = serializers.CharField(write_only=True, min_length=8)
 
@@ -160,9 +152,6 @@ class RequestPasswordChangeSerializer(serializers.Serializer):
 
 
 class ConfirmPasswordChangeSerializer(serializers.Serializer):
-    """
-    POST /api/auth/confirm-password-change — body: { uid, token, new_password }
-    """
     uid          = serializers.CharField()
     token        = serializers.CharField()
     new_password = serializers.CharField(write_only=True, min_length=8)
@@ -200,7 +189,8 @@ class ConfirmPasswordChangeSerializer(serializers.Serializer):
 
         self.context["user"] = user
         return data
-        
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
@@ -220,6 +210,7 @@ class TeamMemberSerializer(serializers.ModelSerializer):
         model  = TeamMember
         fields = ["id", "name", "email", "desc", "skills", "role", "added_by",
                   "added_by_name", "qualitifcation", "experience",
+                  "linked_user",                       # ← NEW
                   "updated_at", "is_deleted"]
         read_only_fields = ["id", "updated_at", "added_by"]
 
@@ -296,20 +287,10 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────
-# Task Serializers  (MULTI-ASSIGN + SUBTASKS)
+# Task Serializers
 # ─────────────────────────────────────────────
 
 class TaskSerializer(serializers.ModelSerializer):
-    """
-    Full task serializer.
-
-    NEW fields:
-      - assignees            : list of TeamMember ids (M2M)
-      - assignee_names       : list of TeamMember names
-      - subtask_count        : how many (non-deleted) subtasks this task has
-      - completed_subtasks   : how many of those are done
-      - parent               : parent task id (null for top-level tasks)
-    """
     assign_to_name     = serializers.SerializerMethodField()
     assignee_names     = serializers.SerializerMethodField()
     assign_by_name     = serializers.CharField(source="assign_by.u_name", read_only=True)
@@ -365,7 +346,6 @@ class TaskSerializer(serializers.ModelSerializer):
         validated_data["created_by"] = request.user
         validated_data["assign_by"]  = request.user
 
-        # If no explicit legacy assign_to, sync from first of assignees
         if not validated_data.get("assign_to") and assignees:
             validated_data["assign_to"] = assignees[0]
 
@@ -377,7 +357,6 @@ class TaskSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         assignees = validated_data.pop("assignees", None)
 
-        # Keep legacy assign_to in sync when we know the new assignee set.
         if assignees is not None:
             if assignees:
                 validated_data["assign_to"] = assignees[0]
@@ -393,11 +372,6 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class TaskListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight task serializer for list views. Includes the new
-    multi-assign and subtask metadata so the frontend can render
-    "+N more" badges and subtask progress chips without extra fetches.
-    """
     assign_to_name     = serializers.SerializerMethodField()
     assignee_names     = serializers.SerializerMethodField()
     subtask_count      = serializers.SerializerMethodField()

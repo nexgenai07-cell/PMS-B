@@ -76,10 +76,16 @@ class TeamMember(models.Model):
     """
     Represents a team member profile. Maps to 'Team_Members' in the ERD.
     The 'added_by' FK references User (who added this team member).
+
+    `linked_user` is set when this TeamMember row is created as a
+    *project-scoped conversion* of a Lead (i.e. the Lead was added as a
+    "Member" on a specific project via the Add-Lead modal). Rows with a
+    linked_user should NOT appear in the global "Team Members" list —
+    they belong only to the projects they're linked to via PTeam.
     """
     id         = models.AutoField(primary_key=True)
     name          = models.CharField(max_length=150)
-    email         = models.EmailField(blank=True, null=True)   # ← NEW: contact email
+    email         = models.EmailField(blank=True, null=True)
     desc          = models.TextField(blank=True, null=True)
     skills        = models.CharField(max_length=255, blank=True, null=True)
     role          = models.CharField(max_length=100, blank=True, null=True)
@@ -90,10 +96,21 @@ class TeamMember(models.Model):
                         related_name="added_team_members",
                         db_column="added_by"
                     )
+    # NEW: when set, this TeamMember is a project-scoped profile derived
+    # from a User (a Lead added as a Member on one project). It should be
+    # filtered out of the global team-members list.
+    linked_user   = models.ForeignKey(
+                        User,
+                        on_delete=models.SET_NULL,
+                        null=True,
+                        blank=True,
+                        related_name="team_member_profiles",
+                        db_column="linked_user",
+                    )
     qualitifcation = models.CharField(max_length=255, blank=True, null=True)
     experience    = models.IntegerField(default=0)
     updated_at    = models.DateTimeField(auto_now=True)
-    is_deleted    = models.IntegerField(default=0)   # ERD specifies int
+    is_deleted    = models.IntegerField(default=0)
 
     class Meta:
         db_table = "team_members"
@@ -144,11 +161,6 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_deleted = models.BooleanField(default=False)
 
-    # A project can have MULTIPLE supervisors (confirmed against the actual
-    # "Create Project" UI, which is a multi-select picker) — so this must be
-    # a many-to-many relationship, not a single ForeignKey. `created_by` is
-    # separate: it's whoever actually clicked "Create", which may or may not
-    # also be one of the supervisors.
     supervisors = models.ManyToManyField(
         User,
         related_name="supervised_projects",
@@ -174,12 +186,6 @@ class Project(models.Model):
 class Task(models.Model):
     """
     Task entity. Maps to 'Tasks' in the ERD.
-    assign_to / assign_by / created_by all reference User.
-    p_id references Project.
-
-    NEW:
-      - `assignees` : M2M with TeamMember — supports multiple assignees per task.
-      - `parent`    : self-FK — lets a task have subtasks.
     """
     PRIORITY_CHOICES = [
         ("low", "Low"),
@@ -201,10 +207,6 @@ class Task(models.Model):
     desc       = models.TextField(blank=True, null=True)
     status     = models.CharField(max_length=50, choices=STATUS_CHOICES, default="todo")
 
-    # Legacy single-assignee FK. Kept for backward compatibility — the primary
-    # source of truth for multi-assign is `assignees` (M2M below). When a task
-    # is saved with a single assignee, `assign_to` is auto-synced to the first
-    # one so older code paths still work.
     assign_to  = models.ForeignKey(
                      TeamMember,
                      on_delete=models.SET_NULL,
@@ -243,20 +245,17 @@ class Task(models.Model):
     update_last = models.DateTimeField(auto_now=True)
     is_deleted  = models.BooleanField(default=False)
 
-    # Real per-task completion percentage (0-100). Stored, not derived from status.
     progress = models.PositiveSmallIntegerField(
         default=0,
         help_text="Percent complete, 0-100",
     )
 
-    # NEW: multiple assignees (in addition to the legacy single `assign_to`).
     assignees = models.ManyToManyField(
         TeamMember,
         related_name="multi_assigned_tasks",
         blank=True,
     )
 
-    # NEW: subtasks — a task may have a parent task.
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,
@@ -283,8 +282,7 @@ class Task(models.Model):
 
 class Comment(models.Model):
     """
-    Comment on a task. Maps to 'Comments' in the ERD.
-    t_id → Task, u_id → User.
+    Comment on a task.
     """
     PRIORITY_CHOICES = [
         ("low", "Low"),
@@ -327,8 +325,7 @@ class Comment(models.Model):
 
 class Notification(models.Model):
     """
-    Notification entity. Maps to 'Notifications' in the ERD.
-    u_id → User (the recipient).
+    Notification entity.
     """
     n_id       = models.AutoField(primary_key=True)
     u          = models.ForeignKey(
@@ -342,7 +339,7 @@ class Notification(models.Model):
     is_read    = models.BooleanField(default=False)
     read_at    = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    is_deleted = models.DateTimeField(null=True, blank=True)  # ERD specifies datetime
+    is_deleted = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "notifications"
@@ -366,7 +363,6 @@ class Notification(models.Model):
 class PTeam(models.Model):
     """
     Junction table linking Projects, Tasks, and Team Members.
-    Maps to 'P_Team' in the ERD.
     """
     pt_id  = models.AutoField(primary_key=True)
     p      = models.ForeignKey(

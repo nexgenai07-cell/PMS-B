@@ -442,7 +442,17 @@ class TeamMemberListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        members = TeamMember.objects.filter(is_deleted=0).order_by("name")
+        # Global team-members list:
+        #   - excludes project-scoped Lead conversions (rows with a
+        #     `linked_user` set). Those rows belong only to their projects
+        #     via PTeam, and are resolved through project-scoped endpoints
+        #     instead.
+        members = (
+            TeamMember.objects
+            .filter(is_deleted=0)
+            .filter(linked_user__isnull=True)
+            .order_by("name")
+        )
         return success(TeamMemberSerializer(members, many=True).data)
 
     def post(self, request):
