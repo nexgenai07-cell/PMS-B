@@ -125,7 +125,7 @@ PASSWORD_RESET_TIMEOUT = 86400
 
 
 # ─────────────────────────────────────────────
-# CORS — frontend origins allowed to call this API
+# CORS 
 # ─────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -201,8 +201,6 @@ WSGI_APPLICATION = 'pms_api.wsgi.application'
 # ─────────────────────────────────────────────
 # Database — Neon PostgreSQL (prod) / SQLite (dev)
 # ─────────────────────────────────────────────
-# If DATABASE_URL is set (e.g. Neon), use it. Otherwise fall back to SQLite
-# so local dev still works without any setup.
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
