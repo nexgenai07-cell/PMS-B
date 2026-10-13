@@ -1,0 +1,16 @@
+Hi {{ assignee_name }},
+
+{{ assigner_name }} has assigned you a task on {{ project_name }}.
+
+Task:        {{ task_title }}
+Priority:    {{ task_priority }}
+Status:      {{ task_status }}
+Due date:    {{ due_date }}
+
+Description:
+{{ task_description }}
+
+Open the task:
+{{ task_link }}
+
+— The AEEL-PMS Team

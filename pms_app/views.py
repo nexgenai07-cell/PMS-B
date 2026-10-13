@@ -462,7 +462,92 @@ class TeamMemberListCreateView(APIView):
             return success(TeamMemberSerializer(member).data, status.HTTP_201_CREATED)
         return error(serializer.errors)
 
+class SendTaskAssignmentEmailView(APIView):
+    """
+    POST /api/tasks/<t_id>/send-assignment-email
+    body: { assignee_email, assignee_name }
 
+    Sends a task-assignment email to the given assignee using Gmail SMTP.
+    Called by the frontend after creating/updating a task so the SMTP
+    credentials never leave the server.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, t_id):
+        try:
+            task = Task.objects.get(t_id=t_id, is_deleted=False)
+        except Task.DoesNotExist:
+            return error("Task not found.", status.HTTP_404_NOT_FOUND)
+
+        assignee_email = (request.data.get("assignee_email") or "").strip()
+        assignee_name  = (request.data.get("assignee_name") or "").strip() or "Team Member"
+
+        if not assignee_email:
+            return error({"detail": "assignee_email is required."},
+                         status.HTTP_400_BAD_REQUEST)
+
+        project = task.p
+        assigner_name = request.user.u_name or "Your Supervisor"
+
+        try:
+            _send_task_assignment_email(
+                assignee_email=assignee_email,
+                assignee_name=assignee_name,
+                assigner_name=assigner_name,
+                task=task,
+                project=project,
+            )
+        except Exception as e:
+            return error(
+                {"detail": f"Could not send assignment email: {e}"},
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return success({"message": "Assignment email sent."})
+        def _send_task_assignment_email(assignee_email, assignee_name,
+                                assigner_name, task, project):
+    """Send a task-assignment notification via Gmail SMTP."""
+    from django.conf import settings
+    from django.template.loader import render_to_string
+    from django.core.mail import EmailMultiAlternatives
+
+    # Build the task link. Adjust base URL / route prefix if your
+    # frontend routes differ.
+    frontend_base = getattr(settings, 'FRONTEND_URL',
+                            'http://localhost:5173').rstrip('/')
+    task_link = f"{frontend_base}/lead/projects/{project.p_id}/tasks/{task.t_id}"
+
+    due_str = "Not set"
+    if task.due_date:
+        due_str = task.due_date.strftime('%b %d, %Y')
+
+    subject = f"[AEEL-PMS] New task assigned: {task.title}"
+
+    context = {
+        "assignee_name":   assignee_name,
+        "assigner_name":   assigner_name,
+        "task_title":      task.title,
+        "task_description": task.desc or "No description provided",
+        "project_name":    project.p_name if project else "Unknown Project",
+        "task_priority":   task.priority,
+        "task_status":     task.status,
+        "due_date":        due_str,
+        "task_link":       task_link,
+        "year":            timezone.now().year,
+    }
+
+    text_body = render_to_string("pms_app/emails/task_assignment.txt", context)
+    html_body = render_to_string("pms_app/emails/task_assignment.html", context)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[assignee_email],
+    )
+    msg.attach_alternative(html_body, "text/html")
+    msg.send(fail_silently=False)
+    
 class TeamMemberDetailView(APIView):
     """GET / PATCH / DELETE /api/team-members/<id>/"""
     permission_classes = [IsAuthenticated]

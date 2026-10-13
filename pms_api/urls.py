@@ -30,7 +30,8 @@ from pms_app.views import (
     NotificationMarkReadView, NotificationDeleteView,
     NotificationMarkAllReadView, ProjectStatsView,
     VerifyEmailView, ResendVerificationView,NotificationUnreadCountView,LeadStatsView ,TaskSubtasksView, RequestPasswordChangeView,
-    ConfirmPasswordChangeView,
+    ConfirmPasswordChangeView,SendTaskAssignmentEmailView,
+
 )
 
 from rest_framework_simplejwt.views import (
@@ -61,6 +62,10 @@ urlpatterns = [
     path('api/auth/confirm-password-change',
      ConfirmPasswordChangeView.as_view(),
      name='auth_confirm_password_change'),
+
+      path('api/tasks/<t_id>/send-assignment-email',
+         SendTaskAssignmentEmailView.as_view(),
+         name='send_task_assignment_email'),
 
     path('api/task', TaskListCreateView.as_view(), name='Create Task View'),
     path('api/task/<t_id>', TaskDetailView.as_view(), name='TaskDetailView'),
