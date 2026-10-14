@@ -3,8 +3,6 @@ URL configuration for pms_api project.
 """
 from django.contrib import admin
 from django.urls import path
-from django.http import JsonResponse
-from django.conf import settings
 
 from pms_app.views import (
     ProjectTeamMemberStatsView, TeamMemberStatsView, UserStatsView,
@@ -29,25 +27,7 @@ from rest_framework_simplejwt.views import (
 )
 
 
-def _debug_cors(request):
-    return JsonResponse({
-        "DEBUG": settings.DEBUG,
-        "SETTINGS_MODULE": getattr(settings, "SETTINGS_MODULE", None),
-        "ALLOWED_HOSTS": settings.ALLOWED_HOSTS,
-        "installed_has_corsheaders": "corsheaders" in settings.INSTALLED_APPS,
-        "middleware_full": settings.MIDDLEWARE,
-        "middleware_cors": [m for m in settings.MIDDLEWARE if "cors" in m.lower()],
-        "CORS_ALLOWED_ORIGINS": getattr(settings, "CORS_ALLOWED_ORIGINS", None),
-        "CORS_ALLOW_ALL_ORIGINS": getattr(settings, "CORS_ALLOW_ALL_ORIGINS", None),
-        "CORS_ALLOW_CREDENTIALS": getattr(settings, "CORS_ALLOW_CREDENTIALS", None),
-        "request_origin": request.META.get("HTTP_ORIGIN"),
-        "python_version": __import__("sys").version,
-    })
-
-
 urlpatterns = [
-    path("__debug_cors/", _debug_cors),
-
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
