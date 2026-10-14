@@ -81,3 +81,9 @@ yarn-error.log*
 venv/
 venv/
 backend env.zip
+venv/
+db.sqlite3
+.env
+backend env.zip
+__pycache__/
+*.pyc
