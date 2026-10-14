@@ -64,8 +64,9 @@ INSTALLED_APPS = [
 # Middleware
 # ─────────────────────────────────────────────
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',          # must be high
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',          # ← add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -237,13 +238,25 @@ USE_TZ = True
 # ─────────────────────────────────────────────
 # Static files
 # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Static files
+# ─────────────────────────────────────────────
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Only add STATICFILES_DIRS if the folder actually exists — otherwise
-# Django throws a warning/error during collectstatic on Vercel.
 _static_dir = BASE_DIR / 'static'
 STATICFILES_DIRS = [_static_dir] if _static_dir.exists() else []
+
+# WhiteNoise: compress static files and add cache-busting hashes.
+# Django 4.2+ uses STORAGES; older versions used STATICFILES_STORAGE.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 
 # ─────────────────────────────────────────────
