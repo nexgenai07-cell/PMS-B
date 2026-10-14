@@ -80,3 +80,4 @@ yarn-error.log*
 .env.productionvenv/
 venv/
 venv/
+backend env.zip
