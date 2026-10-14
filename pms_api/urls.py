@@ -1,21 +1,10 @@
 """
 URL configuration for pms_api project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
 from django.urls import path
+from django.http import JsonResponse
+from django.conf import settings
 
 from pms_app.views import (
     ProjectTeamMemberStatsView, TeamMemberStatsView, UserStatsView,
@@ -29,9 +18,9 @@ from pms_app.views import (
     NotificationListView, NotificationDetailView,
     NotificationMarkReadView, NotificationDeleteView,
     NotificationMarkAllReadView, ProjectStatsView,
-    VerifyEmailView, ResendVerificationView,NotificationUnreadCountView,LeadStatsView ,TaskSubtasksView, RequestPasswordChangeView,
-    ConfirmPasswordChangeView,SendTaskAssignmentEmailView,
-
+    VerifyEmailView, ResendVerificationView, NotificationUnreadCountView,
+    LeadStatsView, TaskSubtasksView, RequestPasswordChangeView,
+    ConfirmPasswordChangeView, SendTaskAssignmentEmailView,
 )
 
 from rest_framework_simplejwt.views import (
@@ -39,7 +28,26 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+
+def _debug_cors(request):
+    return JsonResponse({
+        "DEBUG": settings.DEBUG,
+        "SETTINGS_MODULE": getattr(settings, "SETTINGS_MODULE", None),
+        "ALLOWED_HOSTS": settings.ALLOWED_HOSTS,
+        "installed_has_corsheaders": "corsheaders" in settings.INSTALLED_APPS,
+        "middleware_full": settings.MIDDLEWARE,
+        "middleware_cors": [m for m in settings.MIDDLEWARE if "cors" in m.lower()],
+        "CORS_ALLOWED_ORIGINS": getattr(settings, "CORS_ALLOWED_ORIGINS", None),
+        "CORS_ALLOW_ALL_ORIGINS": getattr(settings, "CORS_ALLOW_ALL_ORIGINS", None),
+        "CORS_ALLOW_CREDENTIALS": getattr(settings, "CORS_ALLOW_CREDENTIALS", None),
+        "request_origin": request.META.get("HTTP_ORIGIN"),
+        "python_version": __import__("sys").version,
+    })
+
+
 urlpatterns = [
+    path("__debug_cors/", _debug_cors),
+
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -57,13 +65,13 @@ urlpatterns = [
     path('api/auth/resend-verification', ResendVerificationView.as_view(), name='auth_resend_verification'),
 
     path('api/auth/request-password-change',
-     RequestPasswordChangeView.as_view(),
-     name='auth_request_password_change'),
+         RequestPasswordChangeView.as_view(),
+         name='auth_request_password_change'),
     path('api/auth/confirm-password-change',
-     ConfirmPasswordChangeView.as_view(),
-     name='auth_confirm_password_change'),
+         ConfirmPasswordChangeView.as_view(),
+         name='auth_confirm_password_change'),
 
-      path('api/tasks/<t_id>/send-assignment-email',
+    path('api/tasks/<t_id>/send-assignment-email',
          SendTaskAssignmentEmailView.as_view(),
          name='send_task_assignment_email'),
 
@@ -82,22 +90,17 @@ urlpatterns = [
     path('api/notifications/<n_id>/read', NotificationMarkReadView.as_view(), name='NotificationMarkReadView'),
     path('api/notifications/del/<n_id>', NotificationDeleteView.as_view(), name='NotificationDeleteView'),
 
-    path("api/pteam",PTeamListCreateView.as_view(),name="pteam-list-create"),
-    path("api/pteam/<pt_id>",PTeamDetailView.as_view(),name="pteam-detail"),
+    path("api/pteam", PTeamListCreateView.as_view(), name="pteam-list-create"),
+    path("api/pteam/<pt_id>", PTeamDetailView.as_view(), name="pteam-detail"),
 
     path('api/projects/<p_id>/stats', ProjectStatsView.as_view(), name='project_stats'),
-    path('api/notifications/unread-count', NotificationUnreadCountView.as_view(), name='NotificationUnreadCountView'),
 
-    path('api/auth/verify-email',        VerifyEmailView.as_view(),         name='auth_verify_email'),
-    path('api/auth/resend-verification', ResendVerificationView.as_view(), name='auth_resend_verification'),
+    path('api/auth/verify-email', VerifyEmailView.as_view(), name='auth_verify_email'),
 
     path('api/task/<t_id>/subtasks', TaskSubtasksView.as_view(), name='task_subtasks'),
 
-    path('api/team-members/<id>/stats',TeamMemberStatsView.as_view(),name='team_member_stats'),
-    path('api/users/<id>/stats',UserStatsView.as_view(),name='user_stats'),
-    path('api/projects/<p_id>/members/stats',   ProjectTeamMemberStatsView.as_view(), name='project_team_stats'),
+    path('api/team-members/<id>/stats', TeamMemberStatsView.as_view(), name='team_member_stats'),
+    path('api/users/<id>/stats', UserStatsView.as_view(), name='user_stats'),
+    path('api/projects/<p_id>/members/stats', ProjectTeamMemberStatsView.as_view(), name='project_team_stats'),
     path('api/leads/stats/', LeadStatsView.as_view(), name='leads_stats'),
-    # path("api-auth/", include("rest_framework.urls"))
-    # path("api/", include("pms_app.urls")),
-
 ]
