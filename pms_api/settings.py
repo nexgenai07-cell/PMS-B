@@ -26,10 +26,7 @@ load_dotenv(BASE_DIR / '.env')
 # ─────────────────────────────────────────────
 # Core security
 # ─────────────────────────────────────────────
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-*p@p6w2myy(x^+!_-u_4i**y!&gc*(0g&#!^%18c(2pu)wssbl'
-)
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 # In prod (Vercel), DEBUG must be False. Locally defaults to True.
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
