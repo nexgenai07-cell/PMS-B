@@ -77,4 +77,4 @@ yarn-error.log*
 # Frontend env
 # ─────────────────────────────────────────────
 .env
-.env.production
+.env.productionvenv/
