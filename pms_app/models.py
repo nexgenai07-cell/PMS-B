@@ -96,9 +96,7 @@ class TeamMember(models.Model):
                         related_name="added_team_members",
                         db_column="added_by"
                     )
-    # NEW: when set, this TeamMember is a project-scoped profile derived
-    # from a User (a Lead added as a Member on one project). It should be
-    # filtered out of the global team-members list.
+
     linked_user   = models.ForeignKey(
                         User,
                         on_delete=models.SET_NULL,
