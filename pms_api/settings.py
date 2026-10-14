@@ -164,13 +164,16 @@ CSRF_TRUSTED_ORIGINS = [
     "https://pms-f-mu.vercel.app",
     "https://pms-b.vercel.app",
 ]
-
 # Tell Django to trust Vercel's X-Forwarded-Proto header
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Only require HTTPS redirects in prod (breaks local dev otherwise)
+# Vercel already redirects HTTP→HTTPS at the edge.
+# Setting this True causes Django's SecurityMiddleware to issue its own
+# 301, which drops POST bodies and produces HTML "Bad Request (400)".
+SECURE_SSL_REDIRECT = False
+
+# These are safe to keep on — they only affect cookie flags.
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
